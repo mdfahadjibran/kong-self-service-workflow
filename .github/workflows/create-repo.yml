@@ -44,7 +44,7 @@ jobs:
           mkdir -p api
         
           cp "$GITHUB_WORKSPACE/templates/.github/workflows/kong-deploy.yml" .github/workflows/
-          cp "$GITHUB_WORKSPACE/templates/api/kong.yml" api/
+          cp "$GITHUB_WORKSPACE/templates/api/kong.yaml" api/
         
           git add .
           git commit -m "Initial Kong repo structure"
