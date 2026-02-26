@@ -31,14 +31,14 @@ jobs:
             echo "Repository $REPO already exists. Skipping creation."
           else
             echo "Creating repository $REPO"
-            gh repo create "$REPO" --private --yes
+            gh repo create "$REPO" --private --add-readme
           fi
 
       - name: Clone and Bootstrap Repository
         run: |
           REPO=${{ github.repository_owner }}/${{ github.event.inputs.repository_name }}
 
-          # Remove directory if exists (safe re-run)
+          # Clean directory for safe re-run
           rm -rf ${{ github.event.inputs.repository_name }}
 
           gh repo clone "$REPO"
@@ -47,7 +47,7 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          # Configure remote with PAT for push
+          # Use PAT for pushing
           git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/$REPO.git
 
           mkdir -p .github/workflows
