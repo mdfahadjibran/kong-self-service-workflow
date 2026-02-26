@@ -10,7 +10,6 @@ on:
 permissions:
   contents: write
   actions: write
-  metadata: read
 
 jobs:
   create-repo:
@@ -63,14 +62,11 @@ jobs:
           git add .
           git commit -m "Initial Kong repo structure"
 
-          echo "Creating dev branch..."
           git branch -M dev
           git push -u origin dev
 
-          echo "Creating uat branch..."
           git checkout -b uat
           git push -u origin uat
 
-          echo "Creating prod branch..."
           git checkout -b prod
           git push -u origin prod
