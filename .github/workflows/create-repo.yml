@@ -23,28 +23,31 @@ jobs:
       - name: Authenticate GH CLI
         run: echo "${{ secrets.GH_PAT }}" | gh auth login --with-token
 
-      - name: Create, Clone and Bootstrap Repository
+      - name: Create and Bootstrap Repository
         run: |
           REPO=${{ github.repository_owner }}/${{ github.event.inputs.repository_name }}
+          DIR=${{ github.event.inputs.repository_name }}
 
           echo "Checking if $REPO exists..."
 
           if gh repo view "$REPO" >/dev/null 2>&1; then
-            echo "Repository exists."
+            echo "Repository already exists."
           else
             echo "Creating repository $REPO"
-            gh repo create "$REPO" --private --add-readme
+            gh repo create "$REPO" --private
           fi
 
-          echo "Cloning repository..."
-          rm -rf ${{ github.event.inputs.repository_name }}
-          gh repo clone "$REPO"
-          cd ${{ github.event.inputs.repository_name }}
+          echo "Preparing local repository..."
 
+          rm -rf "$DIR"
+          mkdir "$DIR"
+          cd "$DIR"
+
+          git init
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/$REPO.git
+          git remote add origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/$REPO.git
 
           mkdir -p .github/workflows
           mkdir -p api
@@ -53,18 +56,16 @@ jobs:
           cp "$GITHUB_WORKSPACE/templates/api/kong.yaml" api/
 
           git add .
+          git commit -m "Initial Kong repo structure"
 
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "Initial Kong repo structure"
-          fi
-
-          git checkout -B dev
+          echo "Creating dev branch..."
+          git branch -M dev
           git push -u origin dev
 
-          git checkout -B uat
+          echo "Creating uat branch..."
+          git checkout -b uat
           git push -u origin uat
 
-          git checkout -B prod
+          echo "Creating prod branch..."
+          git checkout -b prod
           git push -u origin prod
