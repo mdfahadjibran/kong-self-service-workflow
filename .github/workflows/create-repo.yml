@@ -23,31 +23,27 @@ jobs:
       - name: Authenticate GH CLI
         run: echo "${{ secrets.GH_PAT }}" | gh auth login --with-token
 
-      - name: Create Repository (if not exists)
+      - name: Create, Clone and Bootstrap Repository
         run: |
           REPO=${{ github.repository_owner }}/${{ github.event.inputs.repository_name }}
 
+          echo "Checking if $REPO exists..."
+
           if gh repo view "$REPO" >/dev/null 2>&1; then
-            echo "Repository $REPO already exists. Skipping creation."
+            echo "Repository exists."
           else
             echo "Creating repository $REPO"
             gh repo create "$REPO" --private --add-readme
           fi
 
-      - name: Clone and Bootstrap Repository
-        run: |
-          REPO=${{ github.repository_owner }}/${{ github.event.inputs.repository_name }}
-
-          # Clean directory for safe re-run
+          echo "Cloning repository..."
           rm -rf ${{ github.event.inputs.repository_name }}
-
           gh repo clone "$REPO"
           cd ${{ github.event.inputs.repository_name }}
 
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          # Use PAT for pushing
           git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/$REPO.git
 
           mkdir -p .github/workflows
@@ -64,14 +60,11 @@ jobs:
             git commit -m "Initial Kong repo structure"
           fi
 
-          # Create dev branch
           git checkout -B dev
-          git push -u origin dev || echo "dev already exists"
+          git push -u origin dev
 
-          # Create uat branch
           git checkout -B uat
-          git push -u origin uat || echo "uat already exists"
+          git push -u origin uat
 
-          # Create prod branch
           git checkout -B prod
-          git push -u origin prod || echo "prod already exists"
+          git push -u origin prod
