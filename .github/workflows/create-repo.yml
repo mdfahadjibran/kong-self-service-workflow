@@ -15,14 +15,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout self-service repo
+        uses: actions/checkout@v4
 
       - name: Install GitHub CLI
         run: |
           sudo apt update
           sudo apt install gh -y
 
-      # 🔹 Use ADMIN PAT ONLY for repo creation
+      # 🔹 Authenticate using ADMIN PAT (for repo creation)
       - name: Authenticate with Admin PAT
         run: echo "${{ secrets.GH_ADMIN_PAT }}" | gh auth login --with-token
 
@@ -30,9 +31,12 @@ jobs:
         run: |
           REPO=${{ github.repository_owner }}/${{ github.event.inputs.repository_name }}
 
+          echo "Checking if $REPO exists..."
+
           if gh repo view "$REPO" >/dev/null 2>&1; then
             echo "Repository already exists."
           else
+            echo "Creating repository $REPO"
             gh repo create "$REPO" --private
           fi
 
@@ -44,6 +48,8 @@ jobs:
         run: |
           REPO=${{ github.repository_owner }}/${{ github.event.inputs.repository_name }}
           DIR=${{ github.event.inputs.repository_name }}
+
+          echo "Preparing local repository..."
 
           rm -rf "$DIR"
           mkdir "$DIR"
@@ -64,11 +70,14 @@ jobs:
           git add .
           git commit -m "Initial Kong repo structure"
 
+          echo "Creating dev branch..."
           git branch -M dev
           git push -u origin dev
 
+          echo "Creating uat branch..."
           git checkout -b uat
           git push -u origin uat
 
+          echo "Creating prod branch..."
           git checkout -b prod
           git push -u origin prod
