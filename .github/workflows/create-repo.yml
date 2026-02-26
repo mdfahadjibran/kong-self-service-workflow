@@ -9,39 +9,41 @@ on:
 
 permissions:
   contents: write
-  actions: write
 
 jobs:
   create-repo:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout self-service repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install GitHub CLI
         run: |
           sudo apt update
           sudo apt install gh -y
 
-      - name: Authenticate GH CLI
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+      # 🔹 Use ADMIN PAT ONLY for repo creation
+      - name: Authenticate with Admin PAT
+        run: echo "${{ secrets.GH_ADMIN_PAT }}" | gh auth login --with-token
 
-      - name: Create and Bootstrap Repository
+      - name: Create repository if not exists
         run: |
           REPO=${{ github.repository_owner }}/${{ github.event.inputs.repository_name }}
-          DIR=${{ github.event.inputs.repository_name }}
-
-          echo "Checking if $REPO exists..."
 
           if gh repo view "$REPO" >/dev/null 2>&1; then
             echo "Repository already exists."
           else
-            echo "Creating repository $REPO"
             gh repo create "$REPO" --private
           fi
 
-          echo "Preparing local repository..."
+      # 🔹 Switch to GITHUB_TOKEN for repo operations
+      - name: Authenticate with GITHUB_TOKEN
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+
+      - name: Bootstrap repository
+        run: |
+          REPO=${{ github.repository_owner }}/${{ github.event.inputs.repository_name }}
+          DIR=${{ github.event.inputs.repository_name }}
 
           rm -rf "$DIR"
           mkdir "$DIR"
