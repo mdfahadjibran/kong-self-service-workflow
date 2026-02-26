@@ -1,0 +1,9 @@
+_format_version: "3.0"
+
+services:
+- name: example-service
+  url: https://example.com
+  routes:
+  - name: example-route
+    paths:
+    - /example

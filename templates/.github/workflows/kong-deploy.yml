@@ -1,0 +1,63 @@
+name: Deploy Kong Config
+
+on:
+  push:
+    branches:
+      - dev
+      - uat
+      - prod
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install decK
+        run: |
+          curl -sL https://github.com/kong/deck/releases/download/v1.55.2/deck_1.55.2_linux_amd64.tar.gz | tar -xz
+          sudo mv deck /usr/local/bin/deck
+
+      - name: Select Control Plane based on branch
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "dev" ]; then
+            echo "CP_NAME=${{ secrets.KONNECT_CP_NAME_DEV }}" >> $GITHUB_ENV
+          elif [ "${GITHUB_REF_NAME}" = "uat" ]; then
+            echo "CP_NAME=${{ secrets.KONNECT_CP_NAME_UAT }}" >> $GITHUB_ENV
+          elif [ "${GITHUB_REF_NAME}" = "prod" ]; then
+            echo "CP_NAME=${{ secrets.KONNECT_CP_NAME_PROD }}" >> $GITHUB_ENV
+          else
+            echo "Unsupported branch: ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
+      - name: Find Kong config files
+        run: |
+          FILES=$(find api -type f \( -name "*.yaml" -o -name "*.yml" -o -name "*.json" \))
+          if [ -z "$FILES" ]; then
+            echo "No Kong config files found under api/"
+            exit 1
+          fi
+          echo "FILES<<EOF" >> $GITHUB_ENV
+          echo "$FILES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Validate Kong config files
+        run: |
+          for file in $FILES; do
+            deck file validate "$file"
+          done
+
+      - name: Deploy to Konnect (Multi-file)
+        run: |
+          for file in $FILES; do
+            deck gateway sync "$file" \
+              --konnect-token "${{ secrets.KONNECT_TOKEN }}" \
+              --konnect-control-plane-name "$CP_NAME" \
+              --konnect-addr https://me.api.konghq.com \
+              --select-tag managed-by-deck \
+              --yes
+          done

@@ -1,0 +1,56 @@
+name: Create Kong Repository
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository_name:
+        description: "Name of the new Kong repository"
+        required: true
+
+jobs:
+  create-repo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout self-service repo
+        uses: actions/checkout@v4
+
+      - name: Install GitHub CLI
+        run: |
+          sudo apt update
+          sudo apt install gh -y
+
+      - name: Authenticate GH CLI
+        run: echo "${{ secrets.GH_PAT }}" | gh auth login --with-token
+
+      - name: Create New Repository
+        run: |
+          gh repo create ${{ github.repository_owner }}/${{ github.event.inputs.repository_name }} \
+            --private \
+            --confirm
+
+      - name: Clone new repository
+        run: |
+          gh repo clone ${{ github.repository_owner }}/${{ github.event.inputs.repository_name }}
+          cd ${{ github.event.inputs.repository_name }}
+
+          mkdir -p .github/workflows
+          mkdir -p api
+
+          cp ../templates/.github/workflows/kong-deploy.yml .github/workflows/
+          cp ../templates/api/kong.yml api/
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add .
+          git commit -m "Initial Kong repo structure"
+
+          git branch -M dev
+          git push origin dev
+
+          git checkout -b uat
+          git push origin uat
+
+          git checkout -b prod
+          git push origin prod
