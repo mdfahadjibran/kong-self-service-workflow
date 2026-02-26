@@ -31,7 +31,9 @@ jobs:
 
       - name: Clone new repository and initialize branches
         run: |
-          gh repo clone ${{ github.repository_owner }}/${{ github.event.inputs.repository_name }}
+          REPO=${{ github.repository_owner }}/${{ github.event.inputs.repository_name }}
+        
+          gh repo clone "$REPO"
         
           cd ${{ github.event.inputs.repository_name }}
         
